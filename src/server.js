@@ -8,7 +8,7 @@ import ResponseHandler from './utils/responseHandler.js';
 import logger from './utils/logger.js';
 import { errorHandler } from './utils/errorHandler.js';
 // ROUTES
-// import routes from './routes/v1/index.js';
+import routes from './routes/v1/index.js';
 import healthRoute from './routes/health.route.js';
 // DATABASE
 import { initializeDatabase, closeDatabase } from './database/index.js';
@@ -55,7 +55,7 @@ if (config.server.nodeEnv === 'development') {
 app.use('/api/ping', healthRateLimiter, healthRoute);
 
 // API routes with API-specific rate limiting
-// app.use('/api/v1', apiRateLimiter, routes);
+app.use('/api/v1', routes);
 
 // --------------------------    ERROR HANDLING    ---------------------
 app.use(errorHandler);

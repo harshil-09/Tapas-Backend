@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import config from '../config/index.js';
 // SERVICES
 import AuthService from '../services/auth.service.js';
 
@@ -14,32 +15,28 @@ const validateToken = async (req, res, next) => {
 		if (!roleId) return res.handler.unauthorized({}, 'Role ID is required');
 		if (!userId) return res.handler.unauthorized({}, 'User ID is required');
 
-		const payload = jwt.verify(token, process.env.JWT_SECRET || '');
+		const payload = jwt.verify(token, config.jwt.secret);
 
 		if (!payload) return res.handler.unauthorized({}, 'Invalid token');
 
-		const result = await authService.checkUserSession(
-			parseInt(userId),
-			parseInt(roleId),
-			token || ''
-		);
+		const result = await authService.checkUserSession(parseInt(userId), token || '');
 
-		if (!result.isSessionValid) return res.handler.unauthorized({}, 'Session expired');
+		if (!result || !result.token) return res.handler.unauthorized({}, 'Session expired');
 
 		if (userId !== String(payload.userId)) return res.handler.unauthorized({}, 'Invalid token');
 
 		req.user = {
 			userId: parseInt(payload.userId),
+			roleId: parseInt(roleId),
 			userName: result.userName,
-			userEmail: result.userEmail,
-			entityId: result.entityId,
 			roleName: result.roleName,
+			token: token,
 		};
 
 		return next();
 	} catch (error) {
 		if (error instanceof jwt.TokenExpiredError) {
-			await authService.updateUserSession(parseInt(userId), token || '', 'token-expired');
+			return res.handler.unauthorized({}, 'Token expired');
 		}
 
 		return res.handler.unauthorized({}, 'Invalid token');

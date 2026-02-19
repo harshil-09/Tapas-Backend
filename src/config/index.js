@@ -1,37 +1,82 @@
+import Joi from 'joi';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
+const envSchema = Joi.object({
+	DB_SERVER: Joi.string().required(),
+	DB_NAME: Joi.string().required(),
+	DB_USER: Joi.string().required(),
+	DB_PASSWORD: Joi.string().required(),
+	DB_PORT: Joi.number().required(),
+	DB_ENCRYPT: Joi.string()
+		.default('false')
+		.custom((val) => val === 'true'),
+	DB_TRUST_SERVER_CERTIFICATE: Joi.string()
+		.default('false')
+		.custom((val) => val === 'true'),
+	DB_REQUEST_TIMEOUT: Joi.number().default(30000),
+	DB_POOL_MAX: Joi.number().default(10),
+	DB_POOL_MIN: Joi.number().default(0),
+	DB_POOL_IDLE_TIMEOUT: Joi.number().default(30000),
+	JWT_SECRET: Joi.string().required(),
+	JWT_EXPIRES_IN: Joi.string().default('2d'),
+	PORT: Joi.number().default(5000),
+	NODE_ENV: Joi.string().default('development'),
+	CORS_ORIGIN: Joi.string().default('*'),
+	RATE_LIMIT_WINDOW_MS: Joi.number().default(300000),
+	RATE_LIMIT_AUTH_WINDOW_MS: Joi.number().default(900000),
+	RATE_LIMIT_HEALTH_WINDOW_MS: Joi.number().default(60000),
+}).unknown();
+
+const parseEnv = () => {
+	const { error, value } = envSchema.validate(process.env, {
+		abortEarly: false,
+		stripUnknown: true,
+	});
+
+	if (error) {
+		console.error('Environment variable validation error:');
+		error.details.forEach((err) => {
+			console.error(`- ${err.path.join('.')}: ${err.message}`);
+		});
+		process.exit(1);
+	}
+	return value;
+};
+
+const env = parseEnv();
+
 const config = {
 	database: {
-		server: process.env.DB_SERVER || 'localhost',
-		database: process.env.DB_NAME || 'dish',
-		user: process.env.DB_USER || 'sa',
-		password: process.env.DB_PASSWORD || 'admin@123',
-		port: parseInt(process.env.DB_PORT || '1433', 10),
-		encrypt: process.env.DB_ENCRYPT === 'true',
-		trustServerCertificate: process.env.DB_TRUST_SERVER_CERTIFICATE === 'true',
-		requestTimeout: parseInt(process.env.DB_REQUEST_TIMEOUT || '30000', 10),
+		server: env.DB_SERVER,
+		database: env.DB_NAME,
+		user: env.DB_USER,
+		password: env.DB_PASSWORD,
+		port: env.DB_PORT,
+		encrypt: env.DB_ENCRYPT,
+		trustServerCertificate: env.DB_TRUST_SERVER_CERTIFICATE,
+		requestTimeout: env.DB_REQUEST_TIMEOUT,
 		pool: {
-			max: parseInt(process.env.DB_POOL_MAX || '10', 10),
-			min: parseInt(process.env.DB_POOL_MIN || '0', 10),
-			idleTimeoutMillis: parseInt(process.env.DB_POOL_IDLE_TIMEOUT || '30000', 10),
+			max: env.DB_POOL_MAX,
+			min: env.DB_POOL_MIN,
+			idleTimeoutMillis: env.DB_POOL_IDLE_TIMEOUT,
 		},
 	},
 	jwt: {
-		secret: process.env.JWT_SECRET || 'your-secret-key',
-		expiresIn: process.env.JWT_EXPIRES_IN || '2d',
+		secret: env.JWT_SECRET,
+		expiresIn: env.JWT_EXPIRES_IN,
 	},
 	server: {
-		port: parseInt(process.env.PORT || '8000', 10),
-		nodeEnv: process.env.NODE_ENV || 'development',
-		corsOrigin: process.env.CORS_ORIGIN || '*',
+		port: env.PORT,
+		nodeEnv: env.NODE_ENV,
+		corsOrigin: env.CORS_ORIGIN,
 	},
 	rateLimit: {
-		windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '300000', 10), // 15 minutes
-		authWindowMs: parseInt(process.env.RATE_LIMIT_AUTH_WINDOW_MS || '900000', 10), // 15 minutes
-		healthWindowMs: parseInt(process.env.RATE_LIMIT_HEALTH_WINDOW_MS || '60000', 10), // 1 minute
-	},
+		windowMs: env.RATE_LIMIT_WINDOW_MS,
+		authWindowMs: env.RATE_LIMIT_AUTH_WINDOW_MS,
+		healthWindowMs: env.RATE_LIMIT_HEALTH_WINDOW_MS,
+	}
 };
 
 export default config;
